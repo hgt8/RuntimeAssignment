@@ -31,6 +31,24 @@ func PostgresStore() (*PostgresStorage, error) {
 	}, nil
 }
 
+func (s *PostgresStorage) Init() error {
+	return s.createPoliciesTable()
+}
+
+func (s *PostgresStorage) createPoliciesTable() error {
+	//backticks does not work for some reason, used
+	sqlStatement := "CREATE TABLE IF NOT EXISTS policies \n " +
+		"(id SERIAL PRIMARY KEY,\n    " +
+		"name VARCHAR(255) UNIQUE NOT NULL,\n    " +
+		"author VARCHAR(255) NOT NULL,\n    " +
+		"controls JSONB NOT NULL,\n    " +
+		"created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,\n" +
+		"updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP\n)"
+
+	_, err := s.db.Exec(sqlStatement)
+	return err
+}
+
 func (s *PostgresStorage) CreatePolicy(*Policy) error {
 	return nil
 }
