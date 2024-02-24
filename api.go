@@ -67,6 +67,23 @@ func (s *APIServer) handleGetAllPolicies(w http.ResponseWriter, r *http.Request)
 	return WriteJson(w, http.StatusOK, policies)
 }
 
+func (s *APIServer) handleGetPolicy(w http.ResponseWriter, r *http.Request) error {
+	idString := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+		http.Error(w, "Invalid ID, Error in Conversion", http.StatusBadRequest)
+		return err
+	}
+	policy, err := s.store.GetPolicy(id)
+	if err != nil {
+		http.Error(w, "Policy not found", http.StatusNotFound)
+		return err
+	}
+
+	// Return the policy as JSON
+	return WriteJson(w, http.StatusOK, &policy)
+}
+
 func (s *APIServer) handleCreatePolicy(w http.ResponseWriter, r *http.Request) error {
 	createPolicyRequest := &CreatePolicyRequest{}
 	if err := json.NewDecoder(r.Body).Decode(&createPolicyRequest); err != nil {
@@ -94,23 +111,6 @@ func validateCreatePolicyRequest(policy *CreatePolicyRequest) error {
 		return errors.New("controlData cannot be empty")
 	}
 	return nil
-}
-
-func (s *APIServer) handleGetPolicy(w http.ResponseWriter, r *http.Request) error {
-	idString := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idString)
-	if err != nil {
-		http.Error(w, "Invalid ID, Error in Conversion", http.StatusBadRequest)
-		return err
-	}
-	policy, err := s.store.GetPolicy(id)
-	if err != nil {
-		http.Error(w, "Policy not found", http.StatusNotFound)
-		return err
-	}
-
-	// Return the policy as JSON
-	return WriteJson(w, http.StatusOK, &policy)
 }
 
 func (s *APIServer) handleUpdatePolicy(w http.ResponseWriter, r *http.Request) error {
