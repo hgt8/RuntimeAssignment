@@ -5,6 +5,7 @@ I have tried to keep it simple, reading from a configuration file and also used 
 
 To check the functionality please:
 1. Run on terminal the following command:
+   
    `docker run --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres`
    
    This will create a container running a postgres instance that you can see in your favorite GUI client (I used TablePlus).
