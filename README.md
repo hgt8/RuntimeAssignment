@@ -7,6 +7,8 @@ I have tried to keep it simple, reading from a configuration file and also used 
 I also added a WebSocket endpoint (running on ws://localhost:8088/ws) to notify connected clients (enforcers),
 which can be tested by adding "WebSocket Test Client" from the Chrome extension store, and running the relevant postman calls (either Create or Update).
 
+About the project's structure, I saw quite a few ways to organize it but since I was not sure about the best practice I decided to leave it like this in the 4 main `.go` files.
+
 Regarding the Bonus Challenge, I would have either implemented a solution that can consist of another (indexed) column that inclueds a version of that policy: 
 could be an md5 consisting of the whole json body, or a Unix Timestamp. Then keep a map of an id and version, and querying the db myself in some interval.
 If on request, the client sends me his id and version for the policy, and it is the same on both the client and my map, there is no need to query. Otherwise, I query the db on the sent Id.
