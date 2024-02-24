@@ -1,17 +1,33 @@
 package main
 
-import "log"
+import (
+	"github.com/joho/godotenv"
+	"log"
+	"os"
+)
 
 func main() {
+
+	loadEnvironmentVariables()
+
 	store, err := PostgresStore()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := store.Init(); err != nil {
+	if err := store.InitializeStorage(); err != nil {
 		log.Fatal(err)
 	}
-
-	server := Server("localhost:8088", store)
+	port := os.Getenv("PORT")
+	serverStr := "localhost:" + port
+	server := Server(serverStr, store)
 	server.Run()
+}
+
+func loadEnvironmentVariables() {
+	err := godotenv.Load()
+
+	if err != nil {
+		log.Fatal("Error while loading .env file")
+	}
 }

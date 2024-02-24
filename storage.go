@@ -5,6 +5,7 @@ import (
 	"errors"
 	_ "github.com/lib/pq"
 	"log"
+	"os"
 	"time"
 )
 
@@ -20,8 +21,9 @@ type PostgresStorage struct {
 }
 
 func PostgresStore() (*PostgresStorage, error) {
-	connSter := "user=postgres dbname=postgres password=postgres sslmode=disable"
-	db, err := sql.Open("postgres", connSter)
+	driverName := os.Getenv("PostgresDriverName")
+	connStr := os.Getenv("PostgresConnectionString")
+	db, err := sql.Open(driverName, connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +36,7 @@ func PostgresStore() (*PostgresStorage, error) {
 	}, nil
 }
 
-func (s *PostgresStorage) Init() error {
+func (s *PostgresStorage) InitializeStorage() error {
 	return s.createPoliciesTable()
 }
 
@@ -76,6 +78,7 @@ func (s *PostgresStorage) UpdatePolicy(id int, policy *UpdatePolicyRequest) erro
 }
 
 func (s *PostgresStorage) DeletePolicy(id int) error {
+	//goland:noinspection SqlNoDataSourceInspection
 	sqlStatement := `DELETE FROM policies WHERE id = $1;`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
@@ -95,6 +98,7 @@ func (s *PostgresStorage) DeletePolicy(id int) error {
 }
 
 func (s *PostgresStorage) GetPolicy(id int) (*Policy, error) {
+	//goland:noinspection SqlNoDataSourceInspection
 	var policy Policy
 	sqlStatement := `SELECT id, name, author, controls FROM policies WHERE id=$1;`
 	row := s.db.QueryRow(sqlStatement, id)
