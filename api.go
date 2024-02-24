@@ -44,8 +44,8 @@ func (s *APIServer) Run() {
 	log.Println("Initiating Server on", s.ListenAddress)
 	router := mux.NewRouter()
 
-	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handlePoliciesEndpoints))
-
+	//router.HandleFunc("/policies", makeHTTPHandleFunc(s.handlePoliciesEndpoints))
+	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleCreatePolicy))
 	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleGetPolicy))
 
 	err := http.ListenAndServe(s.ListenAddress, router)
@@ -72,7 +72,19 @@ func (s *APIServer) handlePoliciesEndpoints(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *APIServer) handleCreatePolicy(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	createPolicyRequest := &CreatePolicyRequest{}
+	if err := json.NewDecoder(r.Body).Decode(&createPolicyRequest); err != nil {
+		return err
+	}
+	policy := CreatePolicyRequest{
+		createPolicyRequest.PolicyName,
+		createPolicyRequest.Author,
+		createPolicyRequest.ControlData,
+	}
+	if err := s.store.CreatePolicy(&policy); err != nil {
+		return err
+	}
+	return WriteJson(w, http.StatusOK, "Insert Successful")
 }
 
 func (s *APIServer) handleGetPolicy(w http.ResponseWriter, r *http.Request) error {

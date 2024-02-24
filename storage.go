@@ -3,11 +3,12 @@ package main
 import (
 	"database/sql"
 	_ "github.com/lib/pq"
+	"log"
 )
 
 type Storage interface {
-	CreatePolicy(policy *Policy) error
-	UpdatePolicy(policy *Policy) error //maybe by id?
+	CreatePolicy(policy *CreatePolicyRequest) error
+	UpdatePolicy(policy *Policy) error //maybe by id and use patch?
 	DeletePolicy(int) error
 	GetPolicy(int) (*Policy, error)
 }
@@ -36,24 +37,33 @@ func (s *PostgresStorage) Init() error {
 }
 
 func (s *PostgresStorage) createPoliciesTable() error {
-	//backticks does not work for some reason, used
-	sqlStatement := "CREATE TABLE IF NOT EXISTS policies \n " +
-		"(id SERIAL PRIMARY KEY,\n    " +
-		"name VARCHAR(255) UNIQUE NOT NULL,\n    " +
-		"author VARCHAR(255) NOT NULL,\n    " +
-		"controls JSONB NOT NULL,\n    " +
-		"created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,\n" +
-		"updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP\n)"
-
+	//goland:noinspection SqlNoDataSourceInspection
+	sqlStatement := `
+		CREATE TABLE IF NOT EXISTS policies
+		(id SERIAL PRIMARY KEY,
+		name VARCHAR(255) UNIQUE NOT NULL,
+		author VARCHAR(255) NOT NULL,
+		controls JSONB NOT NULL,
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP)
+		`
 	_, err := s.db.Exec(sqlStatement)
 	return err
 }
 
-func (s *PostgresStorage) CreatePolicy(*Policy) error {
+func (s *PostgresStorage) CreatePolicy(policy *CreatePolicyRequest) error {
+	//goland:noinspection SqlNoDataSourceInspection
+	sqlStatement :=
+		`INSERT INTO policies (name, author, controls)
+		 VALUES ($1, $2, $3)`
+	_, err := s.db.Exec(sqlStatement, policy.PolicyName, policy.Author, policy.ControlData)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }
 
-func (s *PostgresStorage) UpdatePolicy(*Policy) error {
+func (s *PostgresStorage) UpdatePolicy(policy *Policy) error {
 	return nil
 }
 
