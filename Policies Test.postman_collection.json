@@ -1,0 +1,214 @@
+{
+	"info": {
+		"_postman_id": "79de0de8-a082-464a-945e-c765208a1c5b",
+		"name": "Policies Test",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "33166496"
+	},
+	"item": [
+		{
+			"name": "Get All Policies",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8088/policies",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Policy by ID",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8088/policies/1",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Policy by ID that not exist",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8088/policies/7s",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies",
+						"7s"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Policy by ID that not is not present yet",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:8088/policies/999",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies",
+						"999"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Policy",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"policyName\" : \"Block Cryptocurrency Mining Test\",\r\n\t\"author\" : \"TestUser\",\r\n\t\"controlData\" : {\r\n                    \"TimesCalled\":\"0\", \r\n                    \"ThreatsFound\":\"0\"\r\n                 }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8088/policies",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Policy - Validate Input",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"policyName\" : \"Block Reverse Shell Test\",\r\n\t\"controlData\" : {\r\n                    \"TimesCalled\":\"0\", \r\n                    \"ThreatsFound\":\"0\"\r\n                 }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8088/policies",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Policy",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"policyName\" : \"Block Cryptocurrency Mining Test\",\r\n\t\"author\" : \"TestUser\",\r\n\t\"controlData\" : {\r\n                    \"TimesCalled\":\"12\", \r\n                    \"ThreatsFound\":\"3\"\r\n                 }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8088/policies/1",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Policy - Validate Input",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"policyName\" : \"Block Cryptocurrency Mining Test\",\r\n\t\"author\" : \"TestUser\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8088/policies/1",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Policy",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "localhost:8088/policies/1",
+					"host": [
+						"localhost"
+					],
+					"port": "8088",
+					"path": [
+						"policies",
+						"1"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

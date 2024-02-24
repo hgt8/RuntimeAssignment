@@ -5,14 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 type APIServer struct {
-	ListenAddress string
-	store         Storage
+	ListenAddress     string
+	store             Storage
+	activeConnections map[*websocket.Conn]bool
+	connMutex         sync.Mutex
 }
 
 func WriteJson(w http.ResponseWriter, status int, v any) error {
@@ -36,8 +40,76 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 
 func Server(address string, store Storage) *APIServer {
 	return &APIServer{
-		ListenAddress: address,
-		store:         store,
+		ListenAddress:     address,
+		store:             store,
+		activeConnections: make(map[*websocket.Conn]bool),
+	}
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+func (s *APIServer) wsHandler(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Fatal("Could not upgrade ws")
+		return
+	}
+	defer conn.Close()
+
+	policies, err := s.getAllPolicies()
+	if err != nil {
+		log.Fatal("Could not get all policies")
+		return
+	}
+	policiesJson, err := json.Marshal(policies)
+	if err != nil {
+		log.Fatal("Could not serialize json")
+		return
+	}
+	conn.WriteMessage(websocket.TextMessage, policiesJson)
+
+	s.connMutex.Lock()
+	s.activeConnections[conn] = true
+	s.connMutex.Unlock()
+
+	defer func() {
+		s.connMutex.Lock()
+		delete(s.activeConnections, conn)
+		s.connMutex.Unlock()
+	}()
+
+	for {
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			fmt.Println("read error:", err)
+			break
+		}
+		fmt.Printf("recv: %s\n", p)
+		if err := conn.WriteMessage(messageType, p); err != nil {
+			fmt.Println("write error:", err)
+			break
+		}
+	}
+}
+
+func (s *APIServer) notifyClients(message string) {
+	s.connMutex.Lock()
+	defer s.connMutex.Unlock()
+
+	serializedMessage, err := json.Marshal(message)
+	if err != nil {
+		log.Fatal("Could not serialize json")
+		return
+	}
+
+	for conn := range s.activeConnections {
+		if err := conn.WriteMessage(websocket.TextMessage, serializedMessage); err != nil {
+			delete(s.activeConnections, conn)
+		}
 	}
 }
 
@@ -45,6 +117,7 @@ func (s *APIServer) Run() {
 	log.Println("Initiating Server on", s.ListenAddress)
 	router := mux.NewRouter()
 
+	router.HandleFunc("/ws", s.wsHandler)
 	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleGetAllPolicies)).Methods("GET")
 	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleCreatePolicy)).Methods("POST")
 	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleGetPolicy)).Methods("GET")
@@ -57,8 +130,11 @@ func (s *APIServer) Run() {
 	}
 }
 
+func (s *APIServer) getAllPolicies() ([]*FullPolicy, error) {
+	return s.store.GetAllPolicies()
+}
 func (s *APIServer) handleGetAllPolicies(w http.ResponseWriter, r *http.Request) error {
-	policies, err := s.store.GetAllPolicies()
+	policies, err := s.getAllPolicies()
 	if err != nil {
 		http.Error(w, "Failed to retrieve all policies", http.StatusInternalServerError)
 		return err
@@ -80,7 +156,6 @@ func (s *APIServer) handleGetPolicy(w http.ResponseWriter, r *http.Request) erro
 		return err
 	}
 
-	// Return the policy as JSON
 	return WriteJson(w, http.StatusOK, &policy)
 }
 
@@ -97,6 +172,7 @@ func (s *APIServer) handleCreatePolicy(w http.ResponseWriter, r *http.Request) e
 	if err := s.store.CreatePolicy(createPolicyRequest); err != nil {
 		return err
 	}
+	s.notifyClients("Create Policy has been triggered")
 	return WriteJson(w, http.StatusOK, &createPolicyRequest)
 }
 
@@ -136,6 +212,7 @@ func (s *APIServer) handleUpdatePolicy(w http.ResponseWriter, r *http.Request) e
 		http.Error(w, "Failed to update policy", http.StatusInternalServerError)
 		return err
 	}
+	s.notifyClients("Update Policy has been triggered")
 	message := fmt.Sprintf("Policy at id: %d was updated successfully", id)
 	return WriteJson(w, http.StatusOK, message)
 }
