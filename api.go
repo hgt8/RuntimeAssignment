@@ -46,6 +46,23 @@ func Server(address string, store Storage) *APIServer {
 	}
 }
 
+func (s *APIServer) Run() {
+	log.Println("Initiating Server on", s.ListenAddress)
+	router := mux.NewRouter()
+
+	router.HandleFunc("/ws", s.wsHandler)
+	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleGetAllPolicies)).Methods("GET")
+	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleCreatePolicy)).Methods("POST")
+	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleGetPolicy)).Methods("GET")
+	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleUpdatePolicy)).Methods("PUT")
+	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleDeletePolicy)).Methods("DELETE")
+
+	err := http.ListenAndServe(s.ListenAddress, router)
+	if err != nil {
+		log.Fatal("Server failed to start")
+	}
+}
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -113,26 +130,10 @@ func (s *APIServer) notifyClients(message string) {
 	}
 }
 
-func (s *APIServer) Run() {
-	log.Println("Initiating Server on", s.ListenAddress)
-	router := mux.NewRouter()
-
-	router.HandleFunc("/ws", s.wsHandler)
-	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleGetAllPolicies)).Methods("GET")
-	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleCreatePolicy)).Methods("POST")
-	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleGetPolicy)).Methods("GET")
-	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleUpdatePolicy)).Methods("PUT")
-	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleDeletePolicy)).Methods("DELETE")
-
-	err := http.ListenAndServe(s.ListenAddress, router)
-	if err != nil {
-		log.Fatal("Server failed to start")
-	}
-}
-
 func (s *APIServer) getAllPolicies() ([]*FullPolicy, error) {
 	return s.store.GetAllPolicies()
 }
+
 func (s *APIServer) handleGetAllPolicies(w http.ResponseWriter, r *http.Request) error {
 	policies, err := s.getAllPolicies()
 	if err != nil {
