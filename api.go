@@ -45,6 +45,7 @@ func (s *APIServer) Run() {
 	log.Println("Initiating Server on", s.ListenAddress)
 	router := mux.NewRouter()
 
+	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleGetAllPolicies)).Methods("GET")
 	router.HandleFunc("/policies", makeHTTPHandleFunc(s.handleCreatePolicy)).Methods("POST")
 	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleGetPolicy)).Methods("GET")
 	router.HandleFunc("/policies/{id}", makeHTTPHandleFunc(s.handleUpdatePolicy)).Methods("PUT")
@@ -54,6 +55,16 @@ func (s *APIServer) Run() {
 	if err != nil {
 		log.Fatal("Server failed to start")
 	}
+}
+
+func (s *APIServer) handleGetAllPolicies(w http.ResponseWriter, r *http.Request) error {
+	policies, err := s.store.GetAllPolicies()
+	if err != nil {
+		http.Error(w, "Failed to retrieve all policies", http.StatusInternalServerError)
+		return err
+	}
+
+	return WriteJson(w, http.StatusOK, policies)
 }
 
 func (s *APIServer) handleCreatePolicy(w http.ResponseWriter, r *http.Request) error {

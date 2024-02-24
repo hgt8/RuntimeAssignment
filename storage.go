@@ -10,10 +10,11 @@ import (
 )
 
 type Storage interface {
+	GetPolicy(int) (*Policy, error)
+	GetAllPolicies() ([]*FullPolicy, error)
 	CreatePolicy(policy *CreatePolicyRequest) error
 	UpdatePolicy(id int, policy *UpdatePolicyRequest) error //maybe by id and use patch?
 	DeletePolicy(int) error
-	GetPolicy(int) (*Policy, error)
 }
 
 type PostgresStorage struct {
@@ -55,8 +56,43 @@ func (s *PostgresStorage) createPoliciesTable() error {
 	return err
 }
 
+func (s *PostgresStorage) GetAllPolicies() ([]*FullPolicy, error) {
+	var policies []*FullPolicy
+	sqlStatement := `SELECT * FROM policies;`
+	rows, err := s.db.Query(sqlStatement)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var p FullPolicy
+		err := rows.Scan(&p.ID, &p.PolicyName, &p.Author, &p.ControlData, &p.CreatedAt, &p.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		policies = append(policies, &p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return policies, nil
+}
+
+func (s *PostgresStorage) GetPolicy(id int) (*Policy, error) {
+	var policy Policy
+	sqlStatement := `SELECT id, name, author, controls FROM policies WHERE id=$1;`
+	row := s.db.QueryRow(sqlStatement, id)
+	err := row.Scan(&policy.ID, &policy.PolicyName, &policy.Author, &policy.ControlData)
+	if err != nil {
+		return nil, err
+	}
+	return &policy, nil
+}
+
 func (s *PostgresStorage) CreatePolicy(policy *CreatePolicyRequest) error {
-	//goland:noinspection SqlNoDataSourceInspection
 	sqlStatement :=
 		`INSERT INTO policies (name, author, controls)
 		 VALUES ($1, $2, $3)`
@@ -68,7 +104,6 @@ func (s *PostgresStorage) CreatePolicy(policy *CreatePolicyRequest) error {
 }
 
 func (s *PostgresStorage) UpdatePolicy(id int, policy *UpdatePolicyRequest) error {
-	//goland:noinspection SqlNoDataSourceInspection
 	sqlStatement := `
         UPDATE policies
         SET name = $1, author = $2, controls = $3, updated_at = $4
@@ -78,7 +113,6 @@ func (s *PostgresStorage) UpdatePolicy(id int, policy *UpdatePolicyRequest) erro
 }
 
 func (s *PostgresStorage) DeletePolicy(id int) error {
-	//goland:noinspection SqlNoDataSourceInspection
 	sqlStatement := `DELETE FROM policies WHERE id = $1;`
 	result, err := s.db.Exec(sqlStatement, id)
 	if err != nil {
@@ -95,16 +129,4 @@ func (s *PostgresStorage) DeletePolicy(id int) error {
 	}
 
 	return nil
-}
-
-func (s *PostgresStorage) GetPolicy(id int) (*Policy, error) {
-	//goland:noinspection SqlNoDataSourceInspection
-	var policy Policy
-	sqlStatement := `SELECT id, name, author, controls FROM policies WHERE id=$1;`
-	row := s.db.QueryRow(sqlStatement, id)
-	err := row.Scan(&policy.ID, &policy.PolicyName, &policy.Author, &policy.ControlData)
-	if err != nil {
-		return nil, err
-	}
-	return &policy, nil
 }
