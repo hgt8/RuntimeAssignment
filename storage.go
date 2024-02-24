@@ -2,13 +2,15 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	_ "github.com/lib/pq"
 	"log"
+	"time"
 )
 
 type Storage interface {
 	CreatePolicy(policy *CreatePolicyRequest) error
-	UpdatePolicy(policy *Policy) error //maybe by id and use patch?
+	UpdatePolicy(id int, policy *UpdatePolicyRequest) error //maybe by id and use patch?
 	DeletePolicy(int) error
 	GetPolicy(int) (*Policy, error)
 }
@@ -63,14 +65,42 @@ func (s *PostgresStorage) CreatePolicy(policy *CreatePolicyRequest) error {
 	return nil
 }
 
-func (s *PostgresStorage) UpdatePolicy(policy *Policy) error {
-	return nil
+func (s *PostgresStorage) UpdatePolicy(id int, policy *UpdatePolicyRequest) error {
+	//goland:noinspection SqlNoDataSourceInspection
+	sqlStatement := `
+        UPDATE policies
+        SET name = $1, author = $2, controls = $3, updated_at = $4
+        WHERE id = $5;`
+	_, err := s.db.Exec(sqlStatement, policy.PolicyName, policy.Author, policy.ControlData, time.Now().Add(2*time.Hour), id)
+	return err
 }
 
 func (s *PostgresStorage) DeletePolicy(id int) error {
+	sqlStatement := `DELETE FROM policies WHERE id = $1;`
+	result, err := s.db.Exec(sqlStatement, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("no rows affected")
+	}
+
 	return nil
 }
 
 func (s *PostgresStorage) GetPolicy(id int) (*Policy, error) {
-	return nil, nil
+	var policy Policy
+	sqlStatement := `SELECT id, name, author, controls FROM policies WHERE id=$1;`
+	row := s.db.QueryRow(sqlStatement, id)
+	err := row.Scan(&policy.ID, &policy.PolicyName, &policy.Author, &policy.ControlData)
+	if err != nil {
+		return nil, err
+	}
+	return &policy, nil
 }

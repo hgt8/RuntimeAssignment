@@ -1,6 +1,9 @@
 package main
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Policy struct {
 	ID          int             `json:"id"`
@@ -13,4 +16,11 @@ type CreatePolicyRequest struct {
 	PolicyName  string          `json:"policyName"`
 	Author      string          `json:"author"`
 	ControlData json.RawMessage `json:"controlData"`
+}
+
+type UpdatePolicyRequest struct {
+	PolicyName  string          `json:"policyName"`
+	Author      string          `json:"author"`
+	ControlData json.RawMessage `json:"controlData"`
+	UpdatedAt   time.Time       `json:"updated_at"`
 }
